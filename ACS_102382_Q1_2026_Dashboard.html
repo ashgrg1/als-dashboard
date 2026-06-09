@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACS #102382 — Q1 2026 Executive Dashboard</title>
+<style>
+  :root{
+    --bg:#0d1014; --panel:#151a21; --panel2:#1b212b; --border:#2a323e;
+    --ink:#e9edf3; --muted:#8a94a4; --faint:#5c6573;
+    --amber:#f0a83a; --amber-soft:#f0a83a22;
+    --teal:#3fc9b4; --slate:#6f93c0;
+    --pos:#54d18a; --neg:#ef6b6b;
+    --jan:#6f93c0; --feb:#f0a83a; --mar:#3fc9b4;
+    --mono:"SF Mono","Cascadia Mono","Roboto Mono",Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.5;padding:28px 22px 60px;
+    background-image:radial-gradient(circle at 12% -5%, #1a2230 0%, transparent 42%),
+                     radial-gradient(circle at 95% 0%, #16201d 0%, transparent 40%);
+    background-attachment:fixed;
+  }
+  .wrap{max-width:1160px;margin:0 auto}
+
+  /* header */
+  header{display:flex;justify-content:space-between;align-items:flex-end;
+    flex-wrap:wrap;gap:16px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:26px}
+  .brand{display:flex;align-items:center;gap:14px}
+  .mark{width:46px;height:46px;border-radius:11px;flex:none;
+    background:linear-gradient(145deg,var(--amber),#c8801f);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-weight:700;font-size:18px;color:#221704;
+    box-shadow:0 6px 18px -6px var(--amber)}
+  h1{font-size:21px;font-weight:680;letter-spacing:-.4px}
+  .sub{color:var(--muted);font-size:12.5px;letter-spacing:.2px;margin-top:1px}
+  .period{text-align:right;font-size:12px;color:var(--muted)}
+  .period b{display:block;color:var(--ink);font-family:var(--mono);font-size:15px;letter-spacing:.5px;font-weight:600}
+
+  /* section */
+  .sec-h{display:flex;align-items:baseline;gap:11px;margin:34px 0 15px}
+  .sec-h .n{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:2px}
+  .sec-h h2{font-size:13px;font-weight:650;letter-spacing:1.6px;text-transform:uppercase;color:#c3ccd9}
+  .sec-h .line{flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+
+  /* kpi */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:13px}
+  .kpi{background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:16px 16px 15px;position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;top:0;left:0;width:100%;height:2px;background:var(--amber);opacity:.55}
+  .kpi.teal::before{background:var(--teal)} .kpi.slate::before{background:var(--slate)}
+  .kpi .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:1.3px;color:var(--muted)}
+  .kpi .val{font-family:var(--mono);font-size:25px;font-weight:600;letter-spacing:-.5px;margin-top:9px;line-height:1.05}
+  .kpi .meta{font-size:11.5px;color:var(--faint);margin-top:6px}
+  .chip{display:inline-block;font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:20px;font-weight:600}
+  .chip.up{color:var(--pos);background:#54d18a18} .chip.dn{color:var(--neg);background:#ef6b6b18}
+
+  .grid2{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px}
+  .panel h3{font-size:13.5px;font-weight:620;letter-spacing:.2px}
+  .panel .note{font-size:11.5px;color:var(--faint);margin-top:2px;margin-bottom:6px}
+
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .axis{stroke:var(--border);stroke-width:1}
+  .gl{stroke:#222a35;stroke-width:1;stroke-dasharray:2 4}
+  .tx{fill:var(--muted);font-size:11px;font-family:var(--sans)}
+  .tv{fill:var(--ink);font-family:var(--mono);font-size:11px}
+
+  /* leaderboard */
+  .bars{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+  .row{display:grid;grid-template-columns:140px 1fr 86px;align-items:center;gap:11px}
+  .row .nm{font-size:12px;color:#c9d1dc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .track{height:19px;background:var(--panel2);border-radius:5px;overflow:hidden;position:relative}
+  .fill{height:100%;border-radius:5px;background:linear-gradient(90deg,#c8801f,var(--amber));transition:width .9s cubic-bezier(.2,.7,.3,1)}
+  .row .amt{font-family:var(--mono);font-size:12px;text-align:right;color:var(--ink)}
+  .row .pct{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+
+  /* drilldown selector */
+  .seg{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 14px}
+  .seg button{font-family:var(--sans);font-size:11.5px;color:var(--muted);background:var(--panel2);
+    border:1px solid var(--border);padding:6px 12px;border-radius:20px;cursor:pointer;transition:.18s}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:var(--amber);color:#211603;border-color:var(--amber);font-weight:600}
+
+  /* table */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);
+    font-weight:600;padding:8px 10px;border-bottom:1px solid var(--border)}
+  th.r,td.r{text-align:right}
+  td{padding:9px 10px;border-bottom:1px solid #1c2330}
+  tr:last-child td{border-bottom:none}
+  td.nm{color:#d6dde7} td.num{font-family:var(--mono);color:var(--ink)}
+  tr:hover td{background:#1a212c}
+  .rank{font-family:var(--mono);color:var(--faint);width:26px}
+
+  /* legend */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:11.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+  /* sw */
+  .sw{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .sw .col{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px}
+  .sw .col.s{border-top:2px solid var(--pos)} .sw .col.w{border-top:2px solid var(--neg)}
+  .sw h3{display:flex;align-items:center;gap:9px;font-size:13px;letter-spacing:.4px;margin-bottom:13px}
+  .sw .tag{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:5px;font-weight:600}
+  .sw .s .tag{color:var(--pos);background:#54d18a18} .sw .w .tag{color:var(--neg);background:#ef6b6b18}
+  .item{display:flex;gap:11px;padding:10px 0;border-bottom:1px solid #1b2330}
+  .item:last-child{border-bottom:none}
+  .item .dot{flex:none;width:7px;height:7px;border-radius:50%;margin-top:6px}
+  .s .dot{background:var(--pos)} .w .dot{background:var(--neg)}
+  .item .t{font-size:12.5px;color:#dbe2ec;font-weight:560}
+  .item .d{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.45}
+  .item .d b{color:#c6cedb;font-family:var(--mono);font-weight:600}
+
+  .verify{margin-top:16px;background:#16140c;border:1px solid #3a2f12;border-radius:11px;
+    padding:13px 16px;font-size:11.5px;color:#c8b88a;display:flex;gap:10px}
+  .verify b{color:var(--amber)}
+  footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--border);
+    font-size:11px;color:var(--faint);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+  @media(max-width:860px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .grid2{grid-template-columns:1fr}
+    .sw{grid-template-columns:1fr}
+    .row{grid-template-columns:108px 1fr 70px}
+    .row .nm{font-size:11px}
+    h1{font-size:18px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="mark">ACS</div>
+      <div>
+        <h1>Q1 2026 Executive Dashboard</h1>
+        <div class="sub">Allsup's #102382 · Mineral Wells, TX · Merchandise Sales Summary</div>
+      </div>
+    </div>
+    <div class="period">
+      Reporting period<b>JAN – MAR 2026</b>
+    </div>
+  </header>
+
+  <!-- KPIS -->
+  <div class="sec-h"><span class="n">01</span><h2>Headline Metrics</h2><span class="line"></span></div>
+  <div class="kpis" id="kpis"></div>
+
+  <!-- TREND + LEADERBOARD -->
+  <div class="sec-h"><span class="n">02</span><h2>Monthly Performance &amp; Department Mix</h2><span class="line"></span></div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Revenue by Month</h3>
+      <div class="note">Source data is monthly — daily/weekly detail isn't in these exports.</div>
+      <div id="trend"></div>
+    </div>
+    <div class="panel">
+      <h3>Department Leaderboard <span style="color:var(--faint);font-weight:400;font-size:11px">· Q1 revenue</span></h3>
+      <div class="note">Top 12 of 20 departments · share of total in grey</div>
+      <div class="bars" id="lead"></div>
+    </div>
+  </div>
+
+  <!-- CATEGORY COMPARISON -->
+  <div class="sec-h"><span class="n">03</span><h2>Top Category Comparison</h2><span class="line"></span></div>
+  <div class="panel">
+    <h3>Four Leading Departments — Month over Month</h3>
+    <div class="note">Together these drive about 56% of total store revenue.</div>
+    <div id="catcmp"></div>
+    <div class="legend">
+      <span><i style="background:var(--jan)"></i>January</span>
+      <span><i style="background:var(--feb)"></i>February</span>
+      <span><i style="background:var(--mar)"></i>March</span>
+    </div>
+  </div>
+
+  <!-- DRILLDOWN -->
+  <div class="sec-h"><span class="n">04</span><h2>Subcategory Drilldown</h2><span class="line"></span></div>
+  <div class="panel">
+    <h3>Inside Each Department</h3>
+    <div class="note">Tap a department to see its subcategory breakdown (Q1 revenue).</div>
+    <div class="seg" id="seg"></div>
+    <div id="drill"></div>
+  </div>
+
+  <!-- TOP SKUS -->
+  <div class="sec-h"><span class="n">05</span><h2>Top 15 Items</h2><span class="line"></span></div>
+  <div class="panel">
+    <table>
+      <thead><tr><th class="rank">#</th><th>Item</th><th class="r">Units</th><th class="r">Revenue</th><th class="r">% of total</th></tr></thead>
+      <tbody id="skus"></tbody>
+    </table>
+  </div>
+
+  <!-- STRENGTHS / WEAKNESSES -->
+  <div class="sec-h"><span class="n">06</span><h2>Critical Success Factors &amp; Watch Areas</h2><span class="line"></span></div>
+  <div class="sw">
+    <div class="col s">
+      <h3><span class="tag">STRENGTHS</span> What's working</h3>
+      <div id="strengths"></div>
+    </div>
+    <div class="col w">
+      <h3><span class="tag">WATCH</span> Weak spots &amp; risks</h3>
+      <div id="weak"></div>
+    </div>
+  </div>
+  <div class="verify">
+    <span>⚑</span>
+    <div>These factors are <b>computed from the data</b> — directional signals, not conclusions. Sanity-check each against what you know about the store (weather, promos, staffing, calendar) before acting on it.</div>
+  </div>
+
+  <footer>
+    <span>Built from validated master · 8,878 item rows · totals tie to source to the penny</span>
+    <span>ACS #102382 · Q1 2026</span>
+  </footer>
+</div>
+
+<script>
+const D = {
+  q1_total:775554.26, q1_units:169493, avg_month:258518.09,
+  best_month:"March", worst_month:"February", mom_feb:-3.9, mom_mar:18.2,
+  months:["January","February","March"], mAbbr:["Jan","Feb","Mar"],
+  by_month:{January:{d:250445.29,u:53663},February:{d:240667.13,u:52816},March:{d:284441.84,u:63014}},
+  dept_q1:{"Packaged Beverages":163318.07,"Foodservice":107298.41,"Beer":85083.31,"Cigarettes":76412.87,"Lottery":72220,"Other Tobacco":57963.02,"Snacks":55806.71,"Expense":55768.27,"Candy":28304.37,"Cold Dispensed Beverages":18513.29,"Dairy":11789.34,"Hot Dispensed Beverages":8650.86,"Automotive":7505.69,"Grocery":7432.79,"HBA":5339.42,"Frozen Fd/ Ice Cream":4237.33,"Merchandise":3655.98,"Packaged Commissary":3559.47,"Wine":2022.68,"Frozen Carbonated":672.38},
+  top4:["Packaged Beverages","Foodservice","Beer","Cigarettes"],
+  top4_bm:{"Packaged Beverages":[50533.79,51084.7,61699.58],"Foodservice":[34722.3,33958.62,38617.49],"Beer":[26868.23,26662.81,31552.27],"Cigarettes":[26372.41,23502.66,26537.8]},
+  subcat:{"Packaged Beverages":[["Alternative / Energy (carb)",65637.78],["Carbonated Soft Drinks",41858.44],["Sports Drinks",16672.75],["Bottled Water",11826.89],["RTD Coffee",7725.44],["Enhanced Water",4832.6]],
+    "Foodservice":[["Allsups Menu Items",106802.99],["Frozen Treats",495.42]],
+    "Beer":[["Premium",22325],["Flavored Malt",18598.74],["Imports",16327.47],["Super Premium",15548.44],["Popular",8068.51],["Microbrews / Craft",2975.69]],
+    "Cigarettes":[["Premium Cigarettes",66546.77],["Sub Generic / Private Label",7091.27],["Fourth Tier",2100.29],["Branded Disc Generic",674.54]]},
+  skus:[["CASH APP VANILLA DIRECT PAY",33754.6,256],["ACS BEEF BEAN RED CHILI BURRITO",21026.31,7102],["ACS CHICKEN CHS FLAUTAS",14323.78,3624],["MARLBORO RED KS BOX",8816.42,836],["ALLSUPS 32OZ FOUNTAIN",7740.67,4091],["M&H ICE - 10LB",7547.99,2571],["ACS BEEF CHIMICHANGA",7431.31,1825],["DR PEPPER 20OZ BTL",7349.42,2499],["ALLSUPS 44OZ FOUNTAIN",6672.01,2971],["MARLBORO GOLD KS BOX",5892.44,547],["COPENHAGEN FC NATURAL",5714.08,493],["RED BULL 12OZ CAN",5701.28,1699],["ACS HOMESTYLE CHICKEN BITES",5616.95,1146],["LOTERIA SPECTACULAR $50 TX",5250,105],["ACS SAUS EGG CHS CROISSANT",4977.49,1014]],
+  strengths:[
+    ["Strong finish to the quarter","March was the best month at <b>$284.4K</b>, up <b>+18.2%</b> over February and <b>+13.6%</b> over January — clear momentum into Q2."],
+    ["Packaged Beverages is the anchor","<b>$163.3K</b> (21% of all sales) and growing <b>+22%</b> Jan→Mar. Energy drinks alone are <b>$65.6K</b> of that."],
+    ["Foodservice is the #2 engine","<b>$107.3K</b> at high margin, up <b>+11%</b>, led by hot menu items — burritos, flautas, chimichangas."],
+    ["Growth is broad-based","Cold Dispensed <b>+22%</b>, Dairy <b>+22%</b>, HBA <b>+22%</b>, Snacks <b>+18%</b> all rose together — not a one-category fluke."],
+    ["Beer rebounded in March","Jumped <b>+18%</b> to <b>$31.6K</b>, with premium, imports and flavored malt all contributing."],
+    ["Lottery climbs every month","<b>$22.5K → $23.7K → $26.0K</b> — a dependable, steady traffic driver."]
+  ],
+  weak:[
+    ["February slump","Total fell <b>-3.9%</b> vs January and most departments softened mid-quarter. Worth understanding the cause (weather, calendar, promo gap)."],
+    ["Automotive sliding","Down <b>-22.5%</b> Jan→Mar — the steepest decline of any meaningful department."],
+    ["Hot drinks fading","Hot Dispensed Beverages down <b>-14.7%</b> even as cold drinks climb. Margin-rich category — watch it, though it may be seasonal."],
+    ["Foodservice concentration risk","One SKU — the Beef Bean Red Chili Burrito — is <b>~20%</b> of the entire department. The menu leans on very few items."],
+    ["Top 'seller' is low-margin","The #1 SKU is <b>Cash App card activations ($33.8K)</b> — a thin-margin pass-through that inflates revenue vs. actual profit."],
+    ["Tobacco isn't growing","Other Tobacco <b>-6%</b> and Cigarettes essentially flat while beverages and food expand — a shrinking share of the mix."]
+  ]
+};
+
+const $=id=>document.getElementById(id);
+const usd=(n,d=0)=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const usdK=n=>'$'+(n/1000).toFixed(1)+'K';
+
+/* ---- KPIs ---- */
+$('kpis').innerHTML=[
+  {c:'',l:'Q1 Revenue',v:usd(D.q1_total),m:'Jan–Mar combined'},
+  {c:'slate',l:'Units Sold',v:(D.q1_units/1000).toFixed(1)+'K',m:D.q1_units.toLocaleString()+' items'},
+  {c:'teal',l:'Avg / Month',v:usd(D.avg_month),m:'across 3 months'},
+  {c:'',l:'March MoM',v:'+18.2%',m:'<span class="chip up">▲ vs Feb</span>'},
+  {c:'teal',l:'Best Month',v:'March',m:usd(D.by_month.March.d)+' · peak'}
+].map(k=>`<div class="kpi ${k.c}"><div class="lab">${k.l}</div><div class="val">${k.v}</div><div class="meta">${k.m}</div></div>`).join('');
+
+/* ---- Monthly trend (area+line) ---- */
+(function(){
+  const W=520,H=230,pl=52,pr=18,pt=22,pb=34;
+  const vals=D.months.map(m=>D.by_month[m].d);
+  const max=Math.max(...vals)*1.12, min=Math.min(...vals)*0.85;
+  const x=i=>pl+(W-pl-pr)*(i/(vals.length-1));
+  const y=v=>pt+(H-pt-pb)*(1-(v-min)/(max-min));
+  let grid='',ticks=4;
+  for(let i=0;i<=ticks;i++){const gv=min+(max-min)*i/ticks,gy=y(gv);
+    grid+=`<line class="gl" x1="${pl}" y1="${gy}" x2="${W-pr}" y2="${gy}"/><text class="tx" x="${pl-8}" y="${gy+4}" text-anchor="end">${usdK(gv)}</text>`;}
+  const pts=vals.map((v,i)=>[x(i),y(v)]);
+  const line=pts.map((p,i)=>(i?'L':'M')+p[0]+' '+p[1]).join(' ');
+  const area=`M${pts[0][0]} ${y(min)} `+pts.map(p=>'L'+p[0]+' '+p[1]).join(' ')+` L${pts[pts.length-1][0]} ${y(min)} Z`;
+  let dots='';const mom=['','−3.9%','+18.2%'];const momcl=['','neg','pos'];
+  pts.forEach((p,i)=>{
+    dots+=`<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="var(--amber)" stroke="#0d1014" stroke-width="2"/>`;
+    dots+=`<text class="tv" x="${p[0]}" y="${p[1]-13}" text-anchor="middle" style="font-size:12px;font-weight:600">${usdK(vals[i])}</text>`;
+    dots+=`<text class="tx" x="${p[0]}" y="${H-12}" text-anchor="middle">${D.mAbbr[i]}</text>`;
+    if(mom[i])dots+=`<text x="${p[0]}" y="${p[1]+22}" text-anchor="middle" style="font-family:var(--mono);font-size:11px;font-weight:600;fill:var(--${momcl[i]==='pos'?'pos':'neg'})">${mom[i]}</text>`;
+  });
+  $('trend').innerHTML=`<svg viewBox="0 0 ${W} ${H}">
+    <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--amber)" stop-opacity=".28"/><stop offset="1" stop-color="var(--amber)" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${grid}<path d="${area}" fill="url(#ag)"/><path d="${line}" fill="none" stroke="var(--amber)" stroke-width="2.5" stroke-linejoin="round"/>${dots}
+  </svg>`;
+})();
+
+/* ---- Department leaderboard ---- */
+(function(){
+  const e=Object.entries(D.dept_q1).slice(0,12), max=e[0][1];
+  $('lead').innerHTML=e.map(([n,v])=>`
+    <div class="row"><div class="nm" title="${n}">${n}</div>
+    <div class="track"><div class="fill" style="width:0" data-w="${(v/max*100).toFixed(1)}%"></div></div>
+    <div><div class="amt">${usdK(v)}</div><div class="pct">${(v/D.q1_total*100).toFixed(1)}%</div></div></div>`).join('');
+  requestAnimationFrame(()=>document.querySelectorAll('#lead .fill').forEach(f=>f.style.width=f.dataset.w));
+})();
+
+/* ---- Category comparison (grouped bars) ---- */
+(function(){
+  const W=900,H=270,pl=54,pr=14,pt=18,pb=46;
+  const cats=D.top4, mcol=['var(--jan)','var(--feb)','var(--mar)'];
+  const all=cats.flatMap(c=>D.top4_bm[c]); const max=Math.max(...all)*1.1;
+  const gw=(W-pl-pr)/cats.length, bw=gw*0.20, gap=gw*0.06;
+  const y=v=>pt+(H-pt-pb)*(1-v/max);
+  let grid='';for(let i=0;i<=4;i++){const gv=max*i/4,gy=y(gv);
+    grid+=`<line class="gl" x1="${pl}" y1="${gy}" x2="${W-pr}" y2="${gy}"/><text class="tx" x="${pl-8}" y="${gy+4}" text-anchor="end">${usdK(gv)}</text>`;}
+  let bars='';
+  cats.forEach((c,ci)=>{
+    const gx=pl+gw*ci+gw*0.5;
+    D.top4_bm[c].forEach((v,mi)=>{
+      const bx=gx+(mi-1)*(bw+gap)-bw/2, by=y(v), bh=H-pb-by;
+      bars+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="3" fill="${mcol[mi]}"><title>${c} · ${D.months[mi]}: ${usd(v)}</title></rect>`;
+    });
+    bars+=`<text class="tx" x="${gx}" y="${H-26}" text-anchor="middle" style="fill:#c3ccd9;font-weight:600">${c.replace('Packaged ','Pkg ')}</text>`;
+    const tot=D.top4_bm[c].reduce((a,b)=>a+b,0);
+    bars+=`<text class="tx" x="${gx}" y="${H-11}" text-anchor="middle" style="font-size:10px">${usdK(tot)} Q1</text>`;
+  });
+  $('catcmp').innerHTML=`<svg viewBox="0 0 ${W} ${H}">${grid}<line class="axis" x1="${pl}" y1="${H-pb}" x2="${W-pr}" y2="${H-pb}"/>${bars}</svg>`;
+})();
+
+/* ---- Subcategory drilldown ---- */
+(function(){
+  const depts=Object.keys(D.subcat);
+  $('seg').innerHTML=depts.map((d,i)=>`<button class="${i?'':'on'}" data-d="${d}">${d}</button>`).join('');
+  function draw(dept){
+    const rows=D.subcat[dept], max=Math.max(...rows.map(r=>r[1]));
+    $('drill').innerHTML=`<div class="bars">`+rows.map(([n,v])=>`
+      <div class="row" style="grid-template-columns:200px 1fr 78px">
+        <div class="nm" title="${n}">${n}</div>
+        <div class="track"><div class="fill" style="width:0;background:linear-gradient(90deg,#2c8a7d,var(--teal))" data-w="${(v/max*100).toFixed(1)}%"></div></div>
+        <div class="amt">${usdK(v)}</div></div>`).join('')+`</div>`;
+    requestAnimationFrame(()=>document.querySelectorAll('#drill .fill').forEach(f=>f.style.width=f.dataset.w));
+  }
+  $('seg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');draw(b.dataset.d);});
+  draw(depts[0]);
+})();
+
+/* ---- Top SKUs ---- */
+$('skus').innerHTML=D.skus.map((s,i)=>`<tr>
+  <td class="rank">${i+1}</td><td class="nm">${s[0]}</td>
+  <td class="r num">${s[2].toLocaleString()}</td>
+  <td class="r num">${usd(s[1],2)}</td>
+  <td class="r num" style="color:var(--faint)">${(s[1]/D.q1_total*100).toFixed(1)}%</td></tr>`).join('');
+
+/* ---- Strengths / Weaknesses ---- */
+const render=(arr)=>arr.map(([t,d])=>`<div class="item"><span class="dot"></span><div><div class="t">${t}</div><div class="d">${d}</div></div></div>`).join('');
+$('strengths').innerHTML=render(D.strengths);
+$('weak').innerHTML=render(D.weak);
+</script>
+</body>
+</html>
